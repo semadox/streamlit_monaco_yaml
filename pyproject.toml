@@ -2,7 +2,12 @@
 authors = ["Skalar Systems <contact@skalarsystems.com>"]
 description = "Monaco editor component for Streamlit for editing YAML files."
 name = "streamlit-monaco-yaml"
-version = "0.1.0"
+version = "0.1.1"
+include = [
+  "README.md",
+  "streamlit_monaco_yaml/frontend-build/*",
+  "streamlit_monaco_yaml/*",
+]
 
 [tool.poetry.dependencies]
 python = "^3.9"
