@@ -1,0 +1,80 @@
+name: CI
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  check-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v2
+
+      # Python setup and checks
+
+      - name: Set up python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9.9
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1.3.0
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+
+      - name: Load cached venv
+        id: cached-poetry-dependencies
+        uses: actions/cache@v2
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
+
+      - name: Install dependencies
+        run: poetry install
+        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+
+      - name: Code Quality Black
+        run: poetry run black . --check
+
+      - name: Code quality Flake8
+        run: poetry run flake8 streamlit_monaco_yaml/
+
+      - name: Code quality isort
+        run: poetry run isort . --check
+
+      # Node.js setup and checks
+
+      - uses: actions/setup-node@v1
+        with:
+          node-version: "16.x"
+
+      - name: Get pnpm store directory path
+        id: pnpm-store-dir-path
+        run: echo "::set-output name=dir::${HOME}/.pnpm-store"
+
+      - uses: actions/cache@v2
+        id: pnpm-cache
+        with:
+          path: ${{ steps.pnpm-store-dir-path.outputs.dir }}
+          key: pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            pnpm-
+
+      - name: Install pnpm
+        run: npm install -g "pnpm@^6.24.4"
+
+      - name: Install node dependencies
+        run: cd frontend && pnpm install --frozen-lockfile
+
+      # Build and store package
+
+      - name: Build package
+        run: ./build.sh
+
+      - name: Upload package files as artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: python-package-files
+          path: dist/
