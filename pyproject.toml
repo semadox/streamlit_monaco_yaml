@@ -2,7 +2,7 @@
 authors = ["Skalar Systems <contact@skalarsystems.com>"]
 description = "Monaco editor component for Streamlit for editing YAML files."
 name = "streamlit-monaco-yaml"
-version = "0.1.2"
+version = "0.1.3"
 license = "MIT"
 include = [
   "README.md",
