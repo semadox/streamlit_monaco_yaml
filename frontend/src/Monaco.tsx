@@ -63,6 +63,8 @@ function* iterateSymbols(
   }
 }
 
+
+
 function Monaco({ args }: AceProps) {
   const container = useRef<HTMLDivElement>(null);
   const currentArgs = useRef(args);
@@ -71,6 +73,17 @@ function Monaco({ args }: AceProps) {
     if (!container.current) {
       throw new Error("Container is not available");
     }
+
+    console.log(currentArgs.current.snippets);
+
+    const snippets = currentArgs.current.snippets.map(([label, text]: [string, string]) => {
+      return {
+        label: label,
+        kind: monaco.languages.CompletionItemKind.Snippet,
+        insertText: text
+      }
+    }
+    )
 
 
     const defaultSchema: SchemasSettings = {
@@ -90,6 +103,14 @@ function Monaco({ args }: AceProps) {
       "yaml",
       modelUri,
     );
+
+    monaco.languages.registerCompletionItemProvider('yaml', {
+      provideCompletionItems: function () {
+        return {
+          suggestions: snippets
+        }
+      }
+    });
 
     const editor = monaco.editor.create(container.current, {
       automaticLayout: true,

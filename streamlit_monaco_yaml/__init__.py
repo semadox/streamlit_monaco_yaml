@@ -18,7 +18,17 @@ _monaco_editor = components.declare_component("monaco_editor", **_source)
 
 
 def monaco_editor(
-    value: str = "", schema: Optional[dict] = None, height: int = 600, key: str = None
+    value: str = "",
+    schema: Optional[dict] = None,
+    snippets: list[tuple[str, str]] = None,
+    height: int = 600,
+    key: str = None,
 ) -> CustomComponent:
     """Render a Monaco Editor component."""
-    return _monaco_editor(value=value, schema=schema or {}, height=height, key=key)
+    return _monaco_editor(
+        value=value,
+        schema=schema or {},
+        snippets=snippets or [],
+        height=height,
+        key=key,
+    )
