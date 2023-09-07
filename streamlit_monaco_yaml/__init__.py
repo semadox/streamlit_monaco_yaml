@@ -7,7 +7,7 @@ import streamlit.components.v1 as components
 from streamlit.components.v1.components import CustomComponent
 
 # Change to `False` when using webpack dev server
-__release__ = True
+__release__ = False
 
 if __release__:
     _source = {"path": (Path(__file__).parent / "frontend-build").resolve()}

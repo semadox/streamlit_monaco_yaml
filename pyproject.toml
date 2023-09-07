@@ -13,13 +13,13 @@ homepage = "https://github.com/semadox/streamlit_monaco_yaml"
 repository = "https://github.com/semadox/streamlit_monaco_yaml"
 
 [tool.poetry.dependencies]
-python = "^3.9"
-streamlit = "^1.1.0"
+python = "^3.10"
+streamlit = "^1.26.0"
+ruff = "^0.0.287"
 
 [tool.poetry.dev-dependencies]
-black = "^21.12b0"
-isort = "^5.10.1"
-flake8 = "^4.0.1"
+black = "^23.7.0"
+
 
 [build-system]
 build-backend = "poetry.core.masonry.api"
