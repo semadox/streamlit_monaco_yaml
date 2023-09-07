@@ -72,11 +72,12 @@ function Monaco({ args }: AceProps) {
       throw new Error("Container is not available");
     }
 
+
     const defaultSchema: SchemasSettings = {
-      uri: 'https://github.com/remcohaszing/monaco-yaml/blob/HEAD/examples/demo/src/schema.json',
+      uri: String(modelUri),
       // @ts-expect-error TypeScript can’t narrow down the type of JSON imports
       schema: currentArgs.current.schema,
-      fileMatch: ['monaco-yaml.yaml']
+      fileMatch: [String(modelUri),]
     }
 
     const monacoYaml = configureMonacoYaml(monaco, {
