@@ -1,16 +1,13 @@
 import debounce from "lodash/debounce";
 import * as monaco from "monaco-editor";
 // @ts-expect-error No TS module
-import { CancellationToken } from "monaco-editor/esm/vs/base/common/cancellation";
-// @ts-expect-error No TS module
-// import { getDocumentSymbols } from "monaco-editor/esm/vs/editor/contrib/documentSymbols/documentSymbols";
-// import { setDiagnosticsOptions } from "monaco-yaml";
-
 import { ILanguageFeaturesService } from 'monaco-editor/esm/vs/editor/common/services/languageFeatures.js';
+// @ts-expect-error No TS module
 import { OutlineModel } from 'monaco-editor/esm/vs/editor/contrib/documentSymbols/browser/outlineModel.js';
+// @ts-expect-error No TS module
 import { StandaloneServices } from 'monaco-editor/esm/vs/editor/standalone/browser/standaloneServices.js';
 import { configureMonacoYaml, type SchemasSettings } from 'monaco-yaml'
-// @ts-expect-error No TS module
+
 import throttle from "raf-throttle";
 import React, { useEffect, useRef } from "react";
 import {
@@ -28,9 +25,9 @@ interface AceProps extends ComponentProps {
 const modelUri = monaco.Uri.parse("schemas://zerek");
 
 
-async function getDocumentSymbols(ed: any) {
+async function getDocumentSymbols(model: any) {
   const { documentSymbolProvider } = StandaloneServices.get(ILanguageFeaturesService);
-  const outline = await OutlineModel.create(documentSymbolProvider, ed.getModel());
+  const outline = await OutlineModel.create(documentSymbolProvider, model);
   return outline.asListOfDocumentSymbols();
 }
 
@@ -74,16 +71,23 @@ function Monaco({ args }: AceProps) {
       throw new Error("Container is not available");
     }
 
+    console.log("Monaco useEffect called")
     console.log(currentArgs.current.snippets);
 
-    const snippets = currentArgs.current.snippets.map(([label, text]: [string, string]) => {
-      return {
-        label: label,
-        kind: monaco.languages.CompletionItemKind.Snippet,
-        insertText: text
+    function cerateSnippets(range: monaco.IRange): monaco.languages.CompletionItem[] {
+      return currentArgs.current.snippets.map((snippet: any): monaco.languages.CompletionItem => {
+
+        return {
+          label: snippet.label,
+          kind: monaco.languages.CompletionItemKind.Enum,
+          insertText: snippet.insertText,
+          range: range,
+          detail: snippet.detail,
+          // documentation: snippet.detail,
+        }
       }
+      )
     }
-    )
 
 
     const defaultSchema: SchemasSettings = {
@@ -104,13 +108,34 @@ function Monaco({ args }: AceProps) {
       modelUri,
     );
 
+    let selectionPath: string[] = [];
+
+    // Completion for code snippets
     monaco.languages.registerCompletionItemProvider('yaml', {
-      provideCompletionItems: function () {
+      provideCompletionItems: function (
+        model: monaco.editor.ITextModel,
+        position: monaco.Position,
+        context: monaco.languages.CompletionContext,
+        token: monaco.CancellationToken) {
+
+        console.log("called completion")
+        const range: monaco.IRange = {
+          startLineNumber: position.lineNumber,
+          endLineNumber: position.lineNumber,
+          // we assume the snippets are indented with 2 spaces and
+          // work here
+          startColumn: 0,
+          endColumn: position.column,
+
+        };
+
         return {
-          suggestions: snippets
+          suggestions: cerateSnippets(range),
+
         }
       }
     });
+
 
     const editor = monaco.editor.create(container.current, {
       automaticLayout: true,
@@ -123,13 +148,13 @@ function Monaco({ args }: AceProps) {
         : "vs-light",
     });
 
-    let selectionPath: string[] = [];
+
 
     const updateSelectionPath = debounce(async function updateSelectionPath_(
       position: monaco.Position,
     ) {
       const symbols = await getDocumentSymbols(
-        editor,
+        editor.getModel(),
       );
       selectionPath = Array.from(iterateSymbols(symbols, position));
       updateValue();
@@ -172,7 +197,7 @@ function Monaco({ args }: AceProps) {
       updateValue();
     });
 
-    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_S, () => {
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
       updateValue();
     });
 
