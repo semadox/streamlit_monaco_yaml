@@ -72,7 +72,7 @@ function Monaco({ args }: AceProps) {
       throw new Error("Container is not available");
     }
 
-    function cerateSnippets(
+    function createSnippets(
       range: monaco.IRange,
     ): monaco.languages.CompletionItem[] {
       return currentArgs.current.snippets.map(
@@ -90,7 +90,6 @@ function Monaco({ args }: AceProps) {
 
     const defaultSchema: SchemasSettings = {
       uri: String(modelUri),
-      // @ts-expect-error TypeScript can’t narrow down the type of JSON imports
       schema: currentArgs.current.schema,
       fileMatch: [String(modelUri)],
     };
@@ -126,7 +125,7 @@ function Monaco({ args }: AceProps) {
         };
 
         return {
-          suggestions: cerateSnippets(range),
+          suggestions: createSnippets(range),
         };
       },
     });
@@ -150,7 +149,7 @@ function Monaco({ args }: AceProps) {
       updateValue();
       updateValue.flush();
     },
-      300);
+    300);
 
     editor.onDidChangeCursorPosition(async (event) => {
       updateSelectionPath(event.position);
