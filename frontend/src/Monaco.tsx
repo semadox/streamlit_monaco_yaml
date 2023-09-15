@@ -1,11 +1,13 @@
 import debounce from "lodash/debounce";
 import * as monaco from "monaco-editor";
 // @ts-expect-error No TS module
-import { CancellationToken } from "monaco-editor/esm/vs/base/common/cancellation";
+import { ILanguageFeaturesService } from "monaco-editor/esm/vs/editor/common/services/languageFeatures.js";
 // @ts-expect-error No TS module
-import { getDocumentSymbols } from "monaco-editor/esm/vs/editor/contrib/documentSymbols/documentSymbols";
-import { setDiagnosticsOptions } from "monaco-yaml";
+import { OutlineModel } from "monaco-editor/esm/vs/editor/contrib/documentSymbols/browser/outlineModel.js";
 // @ts-expect-error No TS module
+import { StandaloneServices } from "monaco-editor/esm/vs/editor/standalone/browser/standaloneServices.js";
+import { configureMonacoYaml, type SchemasSettings } from "monaco-yaml";
+
 import throttle from "raf-throttle";
 import React, { useEffect, useRef } from "react";
 import {
@@ -22,18 +24,24 @@ interface AceProps extends ComponentProps {
 
 const modelUri = monaco.Uri.parse("schemas://zerek");
 
+async function getDocumentSymbols(model: any) {
+  const { documentSymbolProvider } = StandaloneServices.get(
+    ILanguageFeaturesService,
+  );
+  const outline = await OutlineModel.create(documentSymbolProvider, model);
+  return outline.asListOfDocumentSymbols();
+}
+
 // Based on https://github.com/remcohaszing/monaco-yaml/blob/979ed62d6fa1f8a381251bb50aa003190bdd1d19/examples/demo/src/index.ts#L28
 (window as any).MonacoEnvironment = {
-  getWorker(_moduleId: string, label: string) {
+  getWorker(moduleId: string, label: string) {
     switch (label) {
       case "editorWorkerService":
         return new Worker(
           new URL("monaco-editor/esm/vs/editor/editor.worker", import.meta.url),
         );
       case "yaml":
-        return new Worker(
-          new URL("monaco-yaml/lib/esm/yaml.worker", import.meta.url),
-        );
+        return new Worker(new URL("monaco-yaml/yaml.worker", import.meta.url));
       default:
         throw new Error(`Unknown label ${label}`);
     }
@@ -64,21 +72,31 @@ function Monaco({ args }: AceProps) {
       throw new Error("Container is not available");
     }
 
-    setDiagnosticsOptions({
-      enableSchemaRequest: true,
-      hover: true,
-      completion: true,
-      validate: true,
-      format: true,
-      schemas: [
-        {
-          // Id of the first schema
-          uri: String(modelUri),
-          // Associate with our model
-          fileMatch: [String(modelUri)],
-          schema: currentArgs.current.schema,
+    function createSnippets(
+      range: monaco.IRange,
+    ): monaco.languages.CompletionItem[] {
+      return currentArgs.current.snippets.map(
+        (snippet: any): monaco.languages.CompletionItem => {
+          return {
+            label: snippet.label,
+            kind: monaco.languages.CompletionItemKind.Enum,
+            insertText: snippet.insertText,
+            range: range,
+            detail: snippet.detail,
+          };
         },
-      ],
+      );
+    }
+
+    const defaultSchema: SchemasSettings = {
+      uri: String(modelUri),
+      schema: currentArgs.current.schema,
+      fileMatch: [String(modelUri)],
+    };
+
+    const monacoYaml = configureMonacoYaml(monaco, {
+      enableSchemaRequest: true,
+      schemas: [defaultSchema],
     });
 
     const model = monaco.editor.createModel(
@@ -86,6 +104,31 @@ function Monaco({ args }: AceProps) {
       "yaml",
       modelUri,
     );
+
+    let selectionPath: string[] = [];
+
+    // Completion for code snippets
+    monaco.languages.registerCompletionItemProvider("yaml", {
+      provideCompletionItems: function (
+        model: monaco.editor.ITextModel,
+        position: monaco.Position,
+        context: monaco.languages.CompletionContext,
+        token: monaco.CancellationToken,
+      ) {
+        const range: monaco.IRange = {
+          startLineNumber: position.lineNumber,
+          endLineNumber: position.lineNumber,
+          // we assume the snippets are indented with 2 spaces and
+          // work here
+          startColumn: 0,
+          endColumn: position.column,
+        };
+
+        return {
+          suggestions: createSnippets(range),
+        };
+      },
+    });
 
     const editor = monaco.editor.create(container.current, {
       automaticLayout: true,
@@ -98,21 +141,15 @@ function Monaco({ args }: AceProps) {
         : "vs-light",
     });
 
-    let selectionPath: string[] = [];
-
     const updateSelectionPath = debounce(async function updateSelectionPath_(
       position: monaco.Position,
     ) {
-      const symbols = await getDocumentSymbols(
-        editor.getModel(),
-        false,
-        CancellationToken.None,
-      );
+      const symbols = await getDocumentSymbols(editor.getModel());
       selectionPath = Array.from(iterateSymbols(symbols, position));
       updateValue();
       updateValue.flush();
     },
-      300);
+    300);
 
     editor.onDidChangeCursorPosition(async (event) => {
       updateSelectionPath(event.position);
@@ -149,7 +186,7 @@ function Monaco({ args }: AceProps) {
       updateValue();
     });
 
-    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_S, () => {
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
       updateValue();
     });
 
