@@ -14,12 +14,12 @@ jobs:
       # Python setup and checks
 
       - name: Set up python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
-          python-version: 3.9.17
+          python-version: "3.11"
 
       - name: Install Poetry
-        uses: snok/install-poetry@v1.3.0
+        uses: snok/install-poetry@v1.3.4
         with:
           virtualenvs-create: true
           virtualenvs-in-project: true
@@ -39,7 +39,7 @@ jobs:
         run: poetry run black . --check
 
       - name: Code quality Ruff
-        run: poetry run flake8 streamlit_monaco_yaml/
+        run: poetry run ruff streamlit_monaco_yaml/
 
       # Node.js setup and checks
 
