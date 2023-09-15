@@ -7,7 +7,7 @@ import streamlit.components.v1 as components
 from streamlit.components.v1.components import CustomComponent
 
 # Change to `False` when using webpack dev server
-__release__ = False
+__release__ = True
 
 if __release__:
     _source = {"path": (Path(__file__).parent / "frontend-build").resolve()}
@@ -20,7 +20,7 @@ _monaco_editor = components.declare_component("monaco_editor", **_source)
 class Snippet(TypedDict):
     """Snippet type.
 
-    label: Tje label of the snippet.
+    label: The label of the snippet.
     insertText: The text to insert.
     detail: The detail of the snippet, this will be displayed in the autocomplete.
     """

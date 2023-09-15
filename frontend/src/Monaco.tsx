@@ -1,12 +1,12 @@
 import debounce from "lodash/debounce";
 import * as monaco from "monaco-editor";
 // @ts-expect-error No TS module
-import { ILanguageFeaturesService } from 'monaco-editor/esm/vs/editor/common/services/languageFeatures.js';
+import { ILanguageFeaturesService } from "monaco-editor/esm/vs/editor/common/services/languageFeatures.js";
 // @ts-expect-error No TS module
-import { OutlineModel } from 'monaco-editor/esm/vs/editor/contrib/documentSymbols/browser/outlineModel.js';
+import { OutlineModel } from "monaco-editor/esm/vs/editor/contrib/documentSymbols/browser/outlineModel.js";
 // @ts-expect-error No TS module
-import { StandaloneServices } from 'monaco-editor/esm/vs/editor/standalone/browser/standaloneServices.js';
-import { configureMonacoYaml, type SchemasSettings } from 'monaco-yaml'
+import { StandaloneServices } from "monaco-editor/esm/vs/editor/standalone/browser/standaloneServices.js";
+import { configureMonacoYaml, type SchemasSettings } from "monaco-yaml";
 
 import throttle from "raf-throttle";
 import React, { useEffect, useRef } from "react";
@@ -24,9 +24,10 @@ interface AceProps extends ComponentProps {
 
 const modelUri = monaco.Uri.parse("schemas://zerek");
 
-
 async function getDocumentSymbols(model: any) {
-  const { documentSymbolProvider } = StandaloneServices.get(ILanguageFeaturesService);
+  const { documentSymbolProvider } = StandaloneServices.get(
+    ILanguageFeaturesService,
+  );
   const outline = await OutlineModel.create(documentSymbolProvider, model);
   return outline.asListOfDocumentSymbols();
 }
@@ -35,15 +36,17 @@ async function getDocumentSymbols(model: any) {
 (window as any).MonacoEnvironment = {
   getWorker(moduleId: string, label: string) {
     switch (label) {
-      case 'editorWorkerService':
-        return new Worker(new URL('monaco-editor/esm/vs/editor/editor.worker', import.meta.url))
-      case 'yaml':
-        return new Worker(new URL('monaco-yaml/yaml.worker', import.meta.url))
+      case "editorWorkerService":
+        return new Worker(
+          new URL("monaco-editor/esm/vs/editor/editor.worker", import.meta.url),
+        );
+      case "yaml":
+        return new Worker(new URL("monaco-yaml/yaml.worker", import.meta.url));
       default:
-        throw new Error(`Unknown label ${label}`)
+        throw new Error(`Unknown label ${label}`);
     }
-  }
-}
+  },
+};
 
 // Based on https://github.com/remcohaszing/monaco-yaml/blob/979ed62d6fa1f8a381251bb50aa003190bdd1d19/examples/demo/src/index.ts#L158
 function* iterateSymbols(
@@ -60,8 +63,6 @@ function* iterateSymbols(
   }
 }
 
-
-
 function Monaco({ args }: AceProps) {
   const container = useRef<HTMLDivElement>(null);
   const currentArgs = useRef(args);
@@ -71,36 +72,33 @@ function Monaco({ args }: AceProps) {
       throw new Error("Container is not available");
     }
 
-    console.log("Monaco useEffect called")
-    console.log(currentArgs.current.snippets);
-
-    function cerateSnippets(range: monaco.IRange): monaco.languages.CompletionItem[] {
-      return currentArgs.current.snippets.map((snippet: any): monaco.languages.CompletionItem => {
-
-        return {
-          label: snippet.label,
-          kind: monaco.languages.CompletionItemKind.Enum,
-          insertText: snippet.insertText,
-          range: range,
-          detail: snippet.detail,
-          // documentation: snippet.detail,
-        }
-      }
-      )
+    function cerateSnippets(
+      range: monaco.IRange,
+    ): monaco.languages.CompletionItem[] {
+      return currentArgs.current.snippets.map(
+        (snippet: any): monaco.languages.CompletionItem => {
+          return {
+            label: snippet.label,
+            kind: monaco.languages.CompletionItemKind.Enum,
+            insertText: snippet.insertText,
+            range: range,
+            detail: snippet.detail,
+          };
+        },
+      );
     }
-
 
     const defaultSchema: SchemasSettings = {
       uri: String(modelUri),
       // @ts-expect-error TypeScript can’t narrow down the type of JSON imports
       schema: currentArgs.current.schema,
-      fileMatch: [String(modelUri),]
-    }
+      fileMatch: [String(modelUri)],
+    };
 
     const monacoYaml = configureMonacoYaml(monaco, {
       enableSchemaRequest: true,
-      schemas: [defaultSchema]
-    })
+      schemas: [defaultSchema],
+    });
 
     const model = monaco.editor.createModel(
       currentArgs.current.value,
@@ -111,14 +109,13 @@ function Monaco({ args }: AceProps) {
     let selectionPath: string[] = [];
 
     // Completion for code snippets
-    monaco.languages.registerCompletionItemProvider('yaml', {
+    monaco.languages.registerCompletionItemProvider("yaml", {
       provideCompletionItems: function (
         model: monaco.editor.ITextModel,
         position: monaco.Position,
         context: monaco.languages.CompletionContext,
-        token: monaco.CancellationToken) {
-
-        console.log("called completion")
+        token: monaco.CancellationToken,
+      ) {
         const range: monaco.IRange = {
           startLineNumber: position.lineNumber,
           endLineNumber: position.lineNumber,
@@ -126,16 +123,13 @@ function Monaco({ args }: AceProps) {
           // work here
           startColumn: 0,
           endColumn: position.column,
-
         };
 
         return {
           suggestions: cerateSnippets(range),
-
-        }
-      }
+        };
+      },
     });
-
 
     const editor = monaco.editor.create(container.current, {
       automaticLayout: true,
@@ -148,14 +142,10 @@ function Monaco({ args }: AceProps) {
         : "vs-light",
     });
 
-
-
     const updateSelectionPath = debounce(async function updateSelectionPath_(
       position: monaco.Position,
     ) {
-      const symbols = await getDocumentSymbols(
-        editor.getModel(),
-      );
+      const symbols = await getDocumentSymbols(editor.getModel());
       selectionPath = Array.from(iterateSymbols(symbols, position));
       updateValue();
       updateValue.flush();
